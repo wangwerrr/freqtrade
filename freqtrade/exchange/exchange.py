@@ -269,6 +269,13 @@ class Exchange:
 
         self._api = self._init_ccxt(exchange_conf, True, ccxt_config)
 
+        # Enable demo trading if configured (for Binance futures demo account)
+        # This replaces the deprecated sandbox mode for futures
+        if exchange_conf.get("demo_trading", False):
+            if hasattr(self._api, 'enable_demo_trading'):
+                self._api.enable_demo_trading(True)
+                logger.info("Demo trading enabled for sync API")
+
         ccxt_async_config = self._ccxt_config
         ccxt_async_config = deep_merge_dicts(
             exchange_conf.get("ccxt_config", {}), ccxt_async_config
@@ -277,6 +284,13 @@ class Exchange:
             exchange_conf.get("ccxt_async_config", {}), ccxt_async_config
         )
         self._api_async = self._init_ccxt(exchange_conf, False, ccxt_async_config)
+
+        # Enable demo trading for async API as well
+        if exchange_conf.get("demo_trading", False):
+            if hasattr(self._api_async, 'enable_demo_trading'):
+                self._api_async.enable_demo_trading(True)
+                logger.info("Demo trading enabled for async API")
+
         _has_watch_ohlcv = self.exchange_has("watchOHLCV") and self._ft_has["ws_enabled"]
         if (
             self._config["runmode"] in TRADE_MODES
@@ -284,6 +298,10 @@ class Exchange:
             and _has_watch_ohlcv
         ):
             self._ws_async = self._init_ccxt(exchange_conf, False, ccxt_async_config)
+            # Enable demo trading for WS API as well
+            if exchange_conf.get("demo_trading", False):
+                if hasattr(self._ws_async, 'enable_demo_trading'):
+                    self._ws_async.enable_demo_trading(True)
             self._exchange_ws = ExchangeWS(self._config, self._ws_async)
 
         logger.info(f'Using Exchange "{self.name}"')
